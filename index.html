@@ -162,6 +162,74 @@
       margin-bottom: 11px;
     }
 
+    .preset-box {
+      background: var(--card-2);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+
+    .preset-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .preset-head label {
+      margin: 0;
+      color: var(--text);
+    }
+
+    .preset-head select {
+      width: auto;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+      background: var(--card);
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .preset-btn {
+      background: var(--card);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 9px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .preset-btn:active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .preset-btn-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #bbf7d0;
+    }
+
+    .preset-btn-desc {
+      font-size: 0.72rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .chip-group {
       display: flex;
       flex-wrap: wrap;
@@ -362,7 +430,7 @@
       <button class="icon-btn" id="toggleSettingsBtn" type="button">⚙️ Impostazioni</button>
     </header>
 
-    <!-- Pannello Impostazioni (API Key Gemini + Target Kcal + Backup) -->
+    <!-- Pannello Impostazioni -->
     <section class="card hidden" id="settingsPanel">
       <div class="field">
         <label for="apiKeyInput">Google Gemini API Key (salvata solo su questo iPhone)</label>
@@ -374,14 +442,21 @@
         <div>
           <label for="modelSelect">Modello Gemini</label>
           <select id="modelSelect">
-            <option value="gemini-2.5-flash">gemini-2.5-flash (consigliato)</option>
-            <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (rapido)</option>
+            <option value="gemini-3.8-flash">gemini-3.8-flash (consigliato)</option>
+            <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (rapido)</option>
+            <option value="gemini-flash-latest">gemini-flash-latest</option>
+            <option value="custom">Modello personalizzato...</option>
           </select>
         </div>
         <div>
           <label for="targetKcalInput">Target giornaliero (kcal)</label>
           <input type="number" id="targetKcalInput" min="1000" max="4500" step="25" />
         </div>
+      </div>
+
+      <div class="field hidden" id="customModelField">
+        <label for="customModelInput">ID Modello personalizzato</label>
+        <input type="text" id="customModelInput" placeholder="Es. gemini-3.7-flash" autocomplete="off" />
       </div>
 
       <div class="btn-row" style="margin-bottom:0;">
@@ -411,6 +486,23 @@
 
     <!-- Inserimento Rapido -->
     <section class="card">
+      <!-- Pasti Predefiniti dal Piano Settimanale -->
+      <div class="preset-box">
+        <div class="preset-head">
+          <label for="planDaySelect">📋 Pasti predefiniti</label>
+          <select id="planDaySelect">
+            <option value="Giorno 1">Giorno 1</option>
+            <option value="Giorno 2">Giorno 2</option>
+            <option value="Giorno 3">Giorno 3</option>
+            <option value="Giorno 4">Giorno 4</option>
+            <option value="Giorno 5">Giorno 5</option>
+            <option value="Giorno 6">Giorno 6</option>
+            <option value="Giorno 7">Giorno 7</option>
+          </select>
+        </div>
+        <div class="preset-grid" id="presetButtons"></div>
+      </div>
+
       <div class="btn-row">
         <button class="btn btn-ai" id="photoBtn" type="button">📷 Foto Piatto (AI)</button>
         <button class="btn btn-ai" id="aiTextBtn" type="button">✨ Stima Testo (AI)</button>
@@ -424,6 +516,7 @@
             <option value="Colazione">Colazione</option>
             <option value="Pranzo">Pranzo</option>
             <option value="Spuntino">Spuntino</option>
+            <option value="Merenda">Merenda</option>
             <option value="Cena" selected>Cena</option>
             <option value="Extra/Serale">Extra / Serale</option>
           </select>
@@ -436,7 +529,7 @@
 
       <div class="field">
         <label for="mealDesc">Cosa hai mangiato / bevuto</label>
-        <textarea id="mealDesc" placeholder="Es. 90g riso basmati, 150g merluzzo, 1 cucchiaio olio EVO, sugo pomodoro..."></textarea>
+        <textarea id="mealDesc" placeholder="Scegli un pasto predefinito sopra, scatta una foto o scrivi qui..."></textarea>
         <img id="photoPreview" class="preview-img hidden" alt="Anteprima piatto" />
       </div>
 
@@ -504,6 +597,59 @@
     const STORAGE_ENTRIES = "diario_lampo_entries_v1";
     const STORAGE_SETTINGS = "diario_lampo_settings_v1";
 
+    // Piano settimanale dal foglio Google (Giorno 1 - Giorno 7)
+    const MEAL_PLAN = {
+      "Giorno 1": [
+        { slot: "Colazione", desc: "2 uova (sode, in camicia o strapazzate in antiaderente con poco olio), 30–40 g pane integrale, zucchine o spinaci cotti, tisana tiepida (no menta)", kcal: 330, protein: 18 },
+        { slot: "Spuntino", desc: "1 mela dolce o pera, oppure 100–125 g yogurt bianco naturale", kcal: 90, protein: 4 },
+        { slot: "Pranzo", desc: "70–80 g pasta o riso integrale con zucchine e gamberi o merluzzo, olio EVO a crudo, verdure cotte", kcal: 540, protein: 32 },
+        { slot: "Merenda", desc: "15–20 g mandorle o noci", kcal: 115, protein: 4 },
+        { slot: "Cena", desc: "150 g petto di pollo o tacchino alla piastra/al forno, carote o finocchi cotti, olio EVO a crudo", kcal: 340, protein: 38 }
+      ],
+      "Giorno 2": [
+        { slot: "Colazione", desc: "Frittatina con 1 uovo intero + 1 albume (o 2 uova) e zucchine grattugiate, 30 g pane integrale o 2 fette biscottate integrali", kcal: 300, protein: 19 },
+        { slot: "Spuntino", desc: "100 g yogurt bianco naturale o fiocchi di latte magri", kcal: 85, protein: 10 },
+        { slot: "Pranzo", desc: "70 g farro o orzo con ceci o lenticchie ben cotti, carote, finocchi, olio EVO a crudo", kcal: 520, protein: 22 },
+        { slot: "Merenda", desc: "1 pera o mela cotta senza zuccheri aggiunti", kcal: 85, protein: 1 },
+        { slot: "Cena", desc: "160–180 g merluzzo, platessa o orata al forno/vapore, patate porzione moderata, bietole o erbette al vapore con olio EVO", kcal: 420, protein: 34 }
+      ],
+      "Giorno 3": [
+        { slot: "Colazione", desc: "2 uova sode o alla coque, 30–40 g pane integrale, cetriolo o lattuga, filo d'olio EVO", kcal: 325, protein: 17 },
+        { slot: "Spuntino", desc: "1 banana non eccessiva o 15 g mandorle", kcal: 100, protein: 2 },
+        { slot: "Pranzo", desc: "70–80 g riso basmati o integrale con tacchino o pollo e verdure saltate con poco brodo leggero, olio EVO a crudo", kcal: 550, protein: 36 },
+        { slot: "Merenda", desc: "Yogurt bianco naturale con 1 cucchiaino di semi di lino o chia", kcal: 110, protein: 7 },
+        { slot: "Cena", desc: "Omelette con 1–2 uova e spinaci o zucchine, finocchi cotti o insalata tenera (30 g pane integrale se non mangiato a pranzo)", kcal: 340, protein: 17 }
+      ],
+      "Giorno 4": [
+        { slot: "Colazione", desc: "2 uova strapazzate morbide con spinacino, 30–40 g pane integrale, tisana tiepida", kcal: 325, protein: 18 },
+        { slot: "Spuntino", desc: "1 pera o mela dolce", kcal: 85, protein: 1 },
+        { slot: "Pranzo", desc: "70–80 g pasta integrale con crema leggera di zucchine e 1 cucchiaino di ricotta magra o parmigiano, verdure cotte, olio EVO", kcal: 460, protein: 16 },
+        { slot: "Merenda", desc: "100 g yogurt bianco naturale", kcal: 70, protein: 5 },
+        { slot: "Cena", desc: "140–160 g salmone o sgombro al forno/vapore, fagiolini lessati o al vapore, filo d'olio EVO", kcal: 430, protein: 32 }
+      ],
+      "Giorno 5": [
+        { slot: "Colazione", desc: "2 uova sode su 30–40 g pane integrale, lattuga o rucola, filo d'olio EVO", kcal: 325, protein: 17 },
+        { slot: "Spuntino", desc: "15 g noci o mandorle", kcal: 105, protein: 3 },
+        { slot: "Pranzo", desc: "Zuppa/vellutata leggera di legumi e verdure (zucca, carote, sedano) con 30–40 g pane integrale o 40–50 g riso/orzo, olio EVO", kcal: 470, protein: 18 },
+        { slot: "Merenda", desc: "1 mela cotta o frutta ben tollerata", kcal: 85, protein: 1 },
+        { slot: "Cena", desc: "150 g lonza di maiale magra o pollo/tacchino, zucchine e carote cotte, olio EVO", kcal: 360, protein: 36 }
+      ],
+      "Giorno 6": [
+        { slot: "Colazione", desc: "Frittatina con 2 uova (o 1 uovo + 1 albume) e finocchi/zucchine cotte, 30 g pane integrale o 2 fette biscottate integrali", kcal: 310, protein: 18 },
+        { slot: "Spuntino", desc: "100 g yogurt bianco naturale o fiocchi di latte magri", kcal: 85, protein: 10 },
+        { slot: "Pranzo", desc: "70–80 g couscous o riso integrale con verdure cotte e 120 g tonno al naturale o pesce bianco, olio EVO", kcal: 520, protein: 34 },
+        { slot: "Merenda", desc: "1 banana non troppo matura o 1 pera", kcal: 95, protein: 1 },
+        { slot: "Cena", desc: "160–180 g nasello, merluzzo o sogliola al vapore/cartoccio, patate lesse o purea leggera, spinaci/bietole cotti con olio EVO", kcal: 410, protein: 33 }
+      ],
+      "Giorno 7": [
+        { slot: "Colazione", desc: "2 uova alla coque o in camicia, 30–40 g pane integrale, cetrioli o insalata tenera, filo d'olio EVO, tisana tiepida", kcal: 325, protein: 17 },
+        { slot: "Spuntino", desc: "15 g mandorle o nocciole", kcal: 100, protein: 3 },
+        { slot: "Pranzo", desc: "70–80 g pasta o riso integrale con ragù bianco leggero di carne magra e verdure, olio EVO, verdure cotte", kcal: 550, protein: 31 },
+        { slot: "Merenda", desc: "100 g yogurt bianco naturale con 1 cucchiaino di semi di chia o lino", kcal: 105, protein: 6 },
+        { slot: "Cena", desc: "Frittata al forno leggera con verdure (zucchine, carote, porri ben cotti), insalata tenera o finocchi cotti", kcal: 310, protein: 17 }
+      ]
+    };
+
     const DRIFT_KCAL = {
       "Pomodoro": 25,
       "Alcol": 120,
@@ -512,20 +658,20 @@
       "Dolce": 220
     };
 
-    // Dizionario locale per stima rapida (kcal e proteine per 100g o unità standard)
     const LOCAL_FOOD_DB = [
       { keys: ["riso", "basmati", "integrale"], kcalPer100: 130, protPer100: 2.7 },
-      { keys: ["pasta", "spaghetti", "penne", "fusilli"], kcalPer100: 145, protPer100: 5.0 },
+      { keys: ["pasta", "spaghetti", "penne", "fusilli", "farro", "orzo", "couscous"], kcalPer100: 145, protPer100: 5.0 },
       { keys: ["pane", "friselle", "fette biscottate"], kcalPer100: 270, protPer100: 8.5 },
-      { keys: ["pollo", "petto di pollo", "tacchino"], kcalPer100: 115, protPer100: 23.0 },
+      { keys: ["pollo", "petto di pollo", "tacchino", "lonza"], kcalPer100: 120, protPer100: 23.0 },
       { keys: ["manzo", "vitello", "carne", "bistecca"], kcalPer100: 165, protPer100: 22.0 },
-      { keys: ["merluzzo", "platessa", "orata", "branzino", "pesce"], kcalPer100: 95, protPer100: 18.0 },
+      { keys: ["merluzzo", "platessa", "orata", "branzino", "nasello", "sogliola", "pesce", "gamberi"], kcalPer100: 95, protPer100: 18.0 },
       { keys: ["salmone", "sgombro", "tonno"], kcalPer100: 185, protPer100: 21.0 },
-      { keys: ["uova", "uovo"], kcalPer100: 145, protPer100: 12.5, unitGrams: 60 },
+      { keys: ["uova", "uovo", "frittata", "frittatina", "omelette"], kcalPer100: 145, protPer100: 12.5, unitGrams: 60 },
       { keys: ["yogurt", "skyr", "fiocchi di latte"], kcalPer100: 68, protPer100: 8.5, unitGrams: 150 },
       { keys: ["latte", "bevanda vegetale"], kcalPer100: 48, protPer100: 3.2, unitGrams: 200 },
       { keys: ["olio", "olio evo", "extravergine"], kcalPer100: 900, protPer100: 0, unitGrams: 10 },
-      { keys: ["verdure", "zucchine", "melanzane", "insalata", "spinaci", "broccoli", "finocchi"], kcalPer100: 25, protPer100: 1.5, unitGrams: 150 },
+      { keys: ["mandorle", "noci", "nocciole"], kcalPer100: 610, protPer100: 18.0, unitGrams: 15 },
+      { keys: ["verdure", "zucchine", "melanzane", "insalata", "spinaci", "broccoli", "finocchi", "carote", "bietole", "fagiolini"], kcalPer100: 25, protPer100: 1.5, unitGrams: 150 },
       { keys: ["mela", "pera", "banana", "frutta", "kiwi", "arance"], kcalPer100: 55, protPer100: 0.7, unitGrams: 150 },
       { keys: ["pomodoro", "passata", "sugo"], kcalPer100: 25, protPer100: 1.2, unitGrams: 100 },
       { keys: ["vino", "birra", "calice"], kcalPer100: 80, protPer100: 0.2, unitGrams: 125 }
@@ -559,13 +705,24 @@
     }
 
     function loadSettings() {
+      const allowedModels = new Set([
+        "gemini-3.8-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-flash-latest",
+        "custom"
+      ]);
       try {
-        return Object.assign(
-          { apiKey: "", model: "gemini-2.5-flash", targetKcal: 1725 },
-          JSON.parse(localStorage.getItem(STORAGE_SETTINGS) || "{}")
-        );
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_SETTINGS) || "{}");
+        const model = allowedModels.has(parsed.model) ? parsed.model : "gemini-3.8-flash";
+        return {
+          apiKey: parsed.apiKey || "",
+          model,
+          customModel: parsed.customModel || "",
+          targetKcal: parsed.targetKcal || 1725,
+          selectedDay: MEAL_PLAN[parsed.selectedDay] ? parsed.selectedDay : "Giorno 1"
+        };
       } catch {
-        return { apiKey: "", model: "gemini-2.5-flash", targetKcal: 1725 };
+        return { apiKey: "", model: "gemini-3.8-flash", customModel: "", targetKcal: 1725, selectedDay: "Giorno 1" };
       }
     }
 
@@ -577,17 +734,67 @@
       localStorage.setItem(STORAGE_SETTINGS, JSON.stringify(state.settings));
     }
 
+    function getActiveModel() {
+      if (state.settings.model === "custom") {
+        return (state.settings.customModel || "").trim() || "gemini-3.8-flash";
+      }
+      return state.settings.model || "gemini-3.8-flash";
+    }
+
+    function syncCustomModelVisibility() {
+      const val = document.getElementById("modelSelect").value;
+      document.getElementById("customModelField").classList.toggle("hidden", val !== "custom");
+    }
+
     function setStatus(msg, isError = false) {
       const el = document.getElementById("statusMsg");
       el.textContent = msg;
       el.style.color = isError ? "#fca5a5" : "#7dd3fc";
     }
 
+    function renderPresetButtons() {
+      const day = document.getElementById("planDaySelect").value;
+      const items = MEAL_PLAN[day] || [];
+      const container = document.getElementById("presetButtons");
+      container.innerHTML = items
+        .map((item, idx) => `
+          <button type="button" class="preset-btn" onclick="applyPreset('${day}', ${idx})">
+            <div class="preset-btn-top">
+              <span>${escapeHtml(item.slot)}</span>
+              <span>${item.kcal} kcal</span>
+            </div>
+            <div class="preset-btn-desc">${escapeHtml(item.desc)}</div>
+          </button>
+        `)
+        .join("");
+    }
+
+    function applyPreset(day, idx) {
+      const item = (MEAL_PLAN[day] || [])[idx];
+      if (!item) return;
+
+      document.getElementById("mealType").value = item.slot;
+      document.getElementById("mealDesc").value = item.desc;
+
+      let totalKcal = item.kcal;
+      state.selectedDrifts.forEach(d => {
+        totalKcal += DRIFT_KCAL[d] || 0;
+      });
+
+      document.getElementById("mealKcal").value = totalKcal;
+      document.getElementById("mealProtein").value = item.protein;
+      setStatus(`Caricato: ${day} · ${item.slot} (${totalKcal} kcal). Controlla e salva.`);
+    }
+
     function initForm() {
       document.getElementById("mealTime").value = nowTime();
       document.getElementById("apiKeyInput").value = state.settings.apiKey || "";
-      document.getElementById("modelSelect").value = state.settings.model || "gemini-2.5-flash";
+      document.getElementById("modelSelect").value = state.settings.model || "gemini-3.8-flash";
+      document.getElementById("customModelInput").value = state.settings.customModel || "";
       document.getElementById("targetKcalInput").value = state.settings.targetKcal || 1725;
+      document.getElementById("planDaySelect").value = state.settings.selectedDay || "Giorno 1";
+      syncCustomModelVisibility();
+      renderPresetButtons();
       document.getElementById("todayLabel").textContent =
         `Oggi ${todayISO()} · Target ${state.settings.targetKcal} kcal`;
     }
@@ -616,7 +823,7 @@
 
       const listEl = document.getElementById("entriesList");
       if (!todayEntries.length) {
-        listEl.innerHTML = `<div class="sub">Nessuna registrazione per oggi. Aggiungi un pasto o scatta una foto.</div>`;
+        listEl.innerHTML = `<div class="sub">Nessuna registrazione per oggi. Scegli un pasto predefinito o scatta una foto.</div>`;
         return;
       }
 
@@ -672,7 +879,6 @@
       let kcal = 0;
       let protein = 0;
 
-      // Cerca porzioni in grammi o ml vicino alle parole chiave
       const segments = desc.split(/[,;+]+/);
       segments.forEach(seg => {
         const clean = seg.trim();
@@ -699,7 +905,6 @@
         protein += (matchFood.protPer100 * grams) / 100;
       });
 
-      // Aggiunge calorie dei drift selezionati se non già specificate
       state.selectedDrifts.forEach(d => {
         kcal += DRIFT_KCAL[d] || 0;
       });
@@ -780,10 +985,10 @@
         });
       }
 
-      const model = state.settings.model || "gemini-2.5-flash";
+      const model = getActiveModel();
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-      setStatus("Analisi con Gemini in corso...");
+      setStatus(`Analisi con ${model} in corso...`);
       try {
         const res = await fetch(endpoint, {
           method: "POST",
@@ -907,13 +1112,23 @@
       document.getElementById("settingsPanel").classList.toggle("hidden");
     });
 
+    document.getElementById("modelSelect").addEventListener("change", syncCustomModelVisibility);
+
+    document.getElementById("planDaySelect").addEventListener("change", () => {
+      state.settings.selectedDay = document.getElementById("planDaySelect").value;
+      saveSettings();
+      renderPresetButtons();
+    });
+
     document.getElementById("saveSettingsBtn").addEventListener("click", () => {
       state.settings.apiKey = document.getElementById("apiKeyInput").value.trim();
       state.settings.model = document.getElementById("modelSelect").value;
+      state.settings.customModel = document.getElementById("customModelInput").value.trim();
       state.settings.targetKcal = parseInt(document.getElementById("targetKcalInput").value, 10) || 1725;
       saveSettings();
       renderStatsAndList();
-      setStatus("Impostazioni salvate in locale.");
+      document.getElementById("settingsPanel").classList.add("hidden");
+      setStatus(`Impostazioni salvate (${getActiveModel()}).`);
     });
 
     document.querySelectorAll("#driftChips .chip").forEach(chip => {
@@ -1061,7 +1276,6 @@
       e.target.value = "";
     });
 
-    // Avvio
     initForm();
     renderStatsAndList();
   </script>
