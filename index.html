@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Diario Lampo</title>
+
+    <!-- iOS Web App Metadata -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Diario Lampo">
+    <meta name="theme-color" content="#0f172a">
+
+    <!-- App Icon (SVG Embedded as Data URI) -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%230f172a'><rect width='512' height='512' rx='110' fill='%230f172a'/><path d='M280 64L144 288h112l-24 160 136-224H256l24-160z' fill='%2310b981'/></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='110' fill='%230f172a'/><path d='M280 64L144 288h112l-24 160 136-224H256l24-160z' fill='%2310b981'/></svg>">
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#141e33',
+                            950: '#090d16'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Dynamic PWA Manifest Generator -->
+    <script>
+        const manifest = {
+            name: "Diario Lampo - Pasti & Reflusso",
+            short_name: "Diario Lampo",
+            start_url: "./",
+            display: "standalone",
+            background_color: "#0f172a",
+            theme_color: "#0f172a",
+            icons: [{
+                src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='110' fill='%230f172a'/><path d='M280 64L144 288h112l-24 160 136-224H256l24-160z' fill='%2310b981'/></svg>",
+                sizes: "512x512",
+                type: "image/svg+xml"
+            }]
+        };
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestURL;
+        document.head.appendChild(link);
+    </script>
+
+    <style>
+        /* iOS Safe Area Padding & Smooth Touch Scrolling */
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .active-tap {
+            transform: scale(0.97);
+            transition: transform 0.1s ease;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between select-none">
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    ⚡
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight tracking-tight text-white">Diario Lampo</h1>
+                    <p class="text-xs text-slate-400">Tracciamento pasti & reflusso</p>
+                </div>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700/60 text-xs">
+                <button id="tabNavForm" onclick="switchTab('form')" class="px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-500 text-slate-950 font-semibold shadow-sm">
+                    Nuovo
+                </button>
+                <button id="tabNavHistory" onclick="switchTab('history')" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all flex items-center gap-1">
+                    <span>Storico</span>
+                    <span id="historyBadgeCount" class="bg-slate-700 text-slate-200 text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow max-w-md w-full mx-auto p-4 space-y-5">
+
+        <!-- iOS PWA INSTALL TIP BANNER (Shown only if not standalone) -->
+        <div id="pwaBanner" class="hidden bg-slate-900 border border-emerald-500/30 p-3.5 rounded-2xl shadow-lg relative overflow-hidden">
+            <div class="flex items-start gap-3">
+                <div class="text-xl">📲</div>
+                <div class="text-xs text-slate-300 pr-4">
+                    <strong class="text-emerald-400 block mb-0.5">Usa Diario Lampo come App!</strong>
+                    Tocca il tasto <strong>Condividi <span class="inline-block">⎋</span></strong> su Safari e seleziona <strong>"Aggiungi alla schermata Home"</strong>.
+                </div>
+                <button onclick="dismissPwaBanner()" class="text-slate-500 hover:text-slate-300 text-sm font-bold p-1">✕</button>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 1: FORM DI REGISTRAZIONE ==================== -->
+        <section id="sectionForm" class="space-y-4">
+
+            <!-- Card Principale Form -->
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-3xl space-y-4 shadow-xl">
+                
+                <!-- 1. SELETTORE PASTO -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                        1. Seleziona Pasto
+                    </label>
+                    <div class="grid grid-cols-3 gap-2" id="mealSelectorGrid">
+                        <!-- Generati via JS -->
+                    </div>
+                </div>
+
+                <!-- 2. CAMPO TESTO & CHIP SUGGERIMENTI -->
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            2. Cosa hai mangiato / Drift?
+                        </label>
+                        <span class="text-[11px] text-slate-500">Es. pasta + 1 bicchiere vino</span>
+                    </div>
+
+                    <textarea id="foodInput" rows="2" placeholder="Scrivi in sintesi..." 
+                        class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/50 resize-none transition-all"></textarea>
+
+                    <!-- Chip di scelta rapida -->
+                    <div class="mt-2.5">
+                        <span class="text-[10px] text-slate-500 font-medium block mb-1.5">Aggiungi in 1 tap:</span>
+                        <div class="flex flex-wrap gap-1.5" id="chipsContainer">
+                            <!-- Chips caricate via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. REFLUSSO / DIGESTIONE -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                        3. Stato Reflusso / Digestione
+                    </label>
+                    <div class="grid grid-cols-3 gap-2" id="refluxSelectorGrid">
+                        <button type="button" onclick="selectReflux('Nessun fastidio')" id="refluxBtn-Nessun fastidio"
+                            class="reflux-btn p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 active-tap border-slate-800 bg-slate-950/60 text-slate-400">
+                            <span class="text-lg">🟢</span>
+                            <span class="text-xs font-semibold leading-tight">Nessuno</span>
+                        </button>
+                        <button type="button" onclick="selectReflux('Fastidio lieve')" id="refluxBtn-Fastidio lieve"
+                            class="reflux-btn p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 active-tap border-slate-800 bg-slate-950/60 text-slate-400">
+                            <span class="text-lg">🟡</span>
+                            <span class="text-xs font-semibold leading-tight">Lieve</span>
+                        </button>
+                        <button type="button" onclick="selectReflux('Reflusso / acidità')" id="refluxBtn-Reflusso / acidità"
+                            class="reflux-btn p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 active-tap border-slate-800 bg-slate-950/60 text-slate-400">
+                            <span class="text-lg">🔴</span>
+                            <span class="text-xs font-semibold leading-tight">Reflusso</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. TIMING SONNO & DATA/ORA -->
+                <div class="pt-2 border-t border-slate-800/80 space-y-3">
+                    
+                    <!-- Toggle finestra sonno -->
+                    <div class="flex items-center justify-between bg-slate-950/70 p-3 rounded-2xl border border-slate-800">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-base">🌙</span>
+                            <div>
+                                <div class="text-xs font-medium text-slate-200">Cena / Pasto &lt; 2-3h dal sonno?</div>
+                                <div class="text-[10px] text-slate-500">Segna se vai a dormire a breve</div>
+                            </div>
+                        </div>
+                        <button type="button" id="sleepToggleBtn" onclick="toggleSleepWindow()" 
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400 border border-slate-700">
+                            NO
+                        </button>
+                    </div>
+
+                    <!-- Data e Ora (Flessibile) -->
+                    <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+                        <label for="entryDateTime" class="font-medium text-slate-400">Data e Orario:</label>
+                        <input type="datetime-local" id="entryDateTime" 
+                            class="bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+
+                <!-- PULSANTE SALVA -->
+                <button type="button" onclick="saveEntry()" 
+                    class="w-full bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-500/10 text-center text-sm transition-all flex items-center justify-center gap-2 active-tap">
+                    <span>⚡ Salva Registrazione</span>
+                </button>
+            </div>
+        </section>
+
+
+        <!-- ==================== TAB 2: STORICO & ANALISI ==================== -->
+        <section id="sectionHistory" class="space-y-4 hidden">
+            
+            <!-- STATS SUMMARY CARD -->
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl text-center">
+                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Registrati</div>
+                    <div id="statTotalCount" class="text-xl font-bold text-slate-100 mt-0.5">0</div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl text-center">
+                    <div class="text-[10px] font-semibold text-amber-400/90 uppercase tracking-wider">Reflusso/Lieve</div>
+                    <div id="statRefluxCount" class="text-xl font-bold text-amber-400 mt-0.5">0</div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl text-center">
+                    <div class="text-[10px] font-semibold text-rose-400/90 uppercase tracking-wider">Con Drift</div>
+                    <div id="statDriftCount" class="text-xl font-bold text-rose-400 mt-0.5">0</div>
+                </div>
+            </div>
+
+            <!-- FILTRI & AZIONI ESPORTAZIONE -->
+            <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-3xl space-y-3">
+                
+                <!-- Filtri di ricerca -->
+                <div class="flex items-center justify-between gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                    <button onclick="setFilter('all')" id="filterBtn-all" class="flex-1 py-1.5 rounded-lg font-medium transition-all bg-slate-800 text-emerald-400 font-semibold">Tutti</button>
+                    <button onclick="setFilter('drift')" id="filterBtn-drift" class="flex-1 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-slate-200">Solo Drift</button>
+                    <button onclick="setFilter('reflux')" id="filterBtn-reflux" class="flex-1 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-slate-200">Reflusso</button>
+                </div>
+
+                <!-- Bottoni esportazione -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="copyTextReport()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold py-2.5 px-3 rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 active-tap">
+                        <span>📋 Copia per Docs</span>
+                    </button>
+                    <button onclick="exportCSV()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold py-2.5 px-3 rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 active-tap">
+                        <span>📊 Scarica CSV</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- LISTA RECORD -->
+            <div class="space-y-2.5" id="historyList">
+                <!-- Generata dinamicamente via JS -->
+            </div>
+
+            <!-- Tasto svuota tutto -->
+            <div class="pt-2 text-center">
+                <button onclick="confirmClearAll()" class="text-xs text-rose-400/70 hover:text-rose-400 underline py-2">
+                    Cancella tutto lo storico
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER INFO -->
+    <footer class="py-3 px-4 text-center text-[11px] text-slate-600 border-t border-slate-900">
+        Diario Lampo • Dati salvati esclusivamente sul tuo iPhone
+    </footer>
+
+
+    <!-- ==================== CUSTOM MODAL / TOAST SYSTEM (NO ALERT/CONFIRM) ==================== -->
+    
+    <!-- Notification Toast -->
+    <div id="toastNotification" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 opacity-0 pointer-events-none translate-y-4">
+        <div id="toastContent" class="bg-emerald-500 text-slate-950 font-bold px-4 py-2.5 rounded-full shadow-2xl text-xs flex items-center gap-2">
+            <span>✅</span>
+            <span id="toastMessage">Registrazione salvata!</span>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog Modal -->
+    <div id="customConfirmModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-xs w-full shadow-2xl text-center space-y-4">
+            <div class="text-3xl" id="confirmIcon">⚠️</div>
+            <h3 class="text-sm font-bold text-slate-100" id="confirmTitle">Sei sicuro?</h3>
+            <p class="text-xs text-slate-400" id="confirmMessage">Questa azione non potrà essere annullata.</p>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button id="confirmBtnCancel" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2.5 rounded-xl border border-slate-700">Annulla</button>
+                <button id="confirmBtnOk" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold py-2.5 rounded-xl shadow-lg shadow-rose-600/20">Conferma</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== APPLICATION LOGIC (JAVASCRIPT) ==================== -->
+    <script>
+        // CONFIGURAZIONE PASTI & ICONE
+        const MEALS = [
+            { id: 'Colazione', label: 'Colazione', icon: '☕', startHour: 6, endHour: 10 },
+            { id: 'Spuntino', label: 'Spuntino', icon: '🍏', startHour: 10, endHour: 12 },
+            { id: 'Pranzo', label: 'Pranzo', icon: '🥗', startHour: 12, endHour: 15 },
+            { id: 'Merenda', label: 'Merenda', icon: '🥜', startHour: 15, endHour: 18 },
+            { id: 'Cena', label: 'Cena', icon: '🍽️', startHour: 18, endHour: 22 },
+            { id: 'Extra / Drift', label: 'Extra / Drift', icon: '🍷', startHour: 22, endHour: 6 }
+        ];
+
+        // CHIP SUGGERIMENTI RAPIDI
+        const QUICK_CHIPS = [
+            '+ vino / alcol',
+            '+ olio EVO extra',
+            '+ pane extra',
+            '+ pomodoro',
+            '+ dolci / sgarro',
+            '+ fritto / pesante',
+            'cena < 2h sonno'
+        ];
+
+        // STATO APPLICAZIONE
+        let entries = JSON.parse(localStorage.getItem('diario_lampo_entries') || '[]');
+        let selectedMeal = '';
+        let selectedReflux = 'Nessun fastidio';
+        let isSleepWindowShort = false;
+        let currentFilter = 'all';
+
+        // INIZIALIZZAZIONE ALL'AVVIO
+        window.onload = function() {
+            initMealGrid();
+            initChips();
+            autoSelectMealByTime();
+            resetDateTimeToNow();
+            updateHistoryUI();
+            checkPwaBanner();
+        };
+
+        // Automatic Meal selection based on current hour
+        function autoSelectMealByTime() {
+            const currentHour = new Date().getHours();
+            let matched = MEALS.find(m => {
+                if (m.startHour < m.endHour) {
+                    return currentHour >= m.startHour && currentHour < m.endHour;
+                } else {
+                    return currentHour >= m.startHour || currentHour < m.endHour;
+                }
+            });
+            selectMeal(matched ? matched.id : 'Colazione');
+        }
+
+        function resetDateTimeToNow() {
+            const now = new Date();
+            // Format to YYYY-MM-DDTHH:mm for datetime-local input
+            const localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            document.getElementById('entryDateTime').value = localIso;
+        }
+
+        // Rendere le opzioni dei pasti
+        function initMealGrid() {
+            const grid = document.getElementById('mealSelectorGrid');
+            grid.innerHTML = MEALS.map(meal => `
+                <button type="button" onclick="selectMeal('${meal.id}')" id="mealBtn-${meal.id}"
+                    class="meal-btn p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 active-tap border-slate-800 bg-slate-950/60 text-slate-400">
+                    <span class="text-base">${meal.icon}</span>
+                    <span class="text-xs font-semibold leading-tight">${meal.label}</span>
+                </button>
+            `).join('');
+        }
+
+        function selectMeal(mealId) {
+            selectedMeal = mealId;
+            document.querySelectorAll('.meal-btn').forEach(btn => {
+                btn.className = 'meal-btn p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 active-tap border-slate-800 bg-slate-950/60 text-slate-400';
+            });
+            const activeBtn = document.getElementById(`mealBtn-${mealId}`);
+            if (activeBtn) {
+                activeBtn.className = 'meal-btn p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 active-tap border-emerald-500/80 bg-emerald-500/10 text-emerald-400 font-bold shadow-sm';
+            }
+        }
+
+        // Rendere i chip suggerimenti
+        function initChips() {
+            const container = document.getElementById('chipsContainer');
+            container.innerHTML = QUICK_CHIPS.map(chip => `
+                <button type="button" onclick="appendChip('${chip}')" 
+                    class="bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 text-[11px] px-2.5 py-1 rounded-xl border border-slate-700/80 transition-all active-tap">
+                    ${chip}
+                </button>
+            `).join('');
+        }
+
+        function appendChip(chipText) {
+            const input = document.getElementById('foodInput');
+            let currentText = input.value.trim();
+            if (currentText.length > 0 && !currentText.endsWith(',') && !currentText.endsWith('.')) {
+                currentText += ', ';
+            } else if (currentText.length > 0) {
+                currentText += ' ';
+            }
+            input.value = currentText + chipText;
+            input.focus();
+
+            // Se il chip parla di alcol o sgarro, imposta automaticamente il pasto su extra o suggerisce attenzione
+            if (chipText.includes('cena < 2h')) {
+                isSleepWindowShort = true;
+                updateSleepToggleUI();
+            }
+        }
+
+        // Selettore Reflusso
+        function selectReflux(level) {
+            selectedReflux = level;
+            document.querySelectorAll('.reflux-btn').forEach(btn => {
+                btn.className = 'reflux-btn p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 active-tap border-slate-800 bg-slate-950/60 text-slate-400';
+            });
+            
+            const activeBtn = document.getElementById(`refluxBtn-${level}`);
+            if (activeBtn) {
+                if (level === 'Nessun fastidio') {
+                    activeBtn.className = 'reflux-btn p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 active-tap border-emerald-500/80 bg-emerald-500/10 text-emerald-400 font-bold';
+                } else if (level === 'Fastidio lieve') {
+                    activeBtn.className = 'reflux-btn p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 active-tap border-amber-500/80 bg-amber-500/10 text-amber-400 font-bold';
+                } else {
+                    activeBtn.className = 'reflux-btn p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1 active-tap border-rose-500/80 bg-rose-500/10 text-rose-400 font-bold';
+                }
+            }
+        }
+
+        // Toggle Sonno
+        function toggleSleepWindow() {
+            isSleepWindowShort = !isSleepWindowShort;
+            updateSleepToggleUI();
+        }
+
+        function updateSleepToggleUI() {
+            const btn = document.getElementById('sleepToggleBtn');
+            if (isSleepWindowShort) {
+                btn.textContent = 'SÌ (< 3h)';
+                btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-amber-500/20 text-amber-400 border border-amber-500/40';
+            } else {
+                btn.textContent = 'NO';
+                btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400 border border-slate-700';
+            }
+        }
+
+        // SALVATAGGIO NUOVO RECORD
+        function saveEntry() {
+            const foodText = document.getElementById('foodInput').value.trim();
+            const dateTimeVal = document.getElementById('entryDateTime').value;
+
+            if (!foodText) {
+                showToast('Inserisci cosa hai mangiato!', '⚠️', 'bg-amber-500 text-slate-950');
+                document.getElementById('foodInput').focus();
+                return;
+            }
+
+            // Identificazione automatica se è un drift/sgarro
+            const isDrift = selectedMeal === 'Extra / Drift' || 
+                            foodText.toLowerCase().includes('vino') || 
+                            foodText.toLowerCase().includes('birra') || 
+                            foodText.toLowerCase().includes('alcol') || 
+                            foodText.toLowerCase().includes('pizza') || 
+                            foodText.toLowerCase().includes('extra') || 
+                            foodText.toLowerCase().includes('sgarro');
+
+            const entry = {
+                id: Date.now().toString(),
+                datetime: dateTimeVal || new Date().toISOString(),
+                meal: selectedMeal,
+                food: foodText,
+                reflux: selectedReflux,
+                sleepShort: isSleepWindowShort,
+                isDrift: isDrift
+            };
+
+            entries.unshift(entry); // Aggiungi in cima
+            localStorage.setItem('diario_lampo_entries', JSON.stringify(entries));
+
+            // Reset form parziale
+            document.getElementById('foodInput').value = '';
+            isSleepWindowShort = false;
+            updateSleepToggleUI();
+            resetDateTimeToNow();
+            selectReflux('Nessun fastidio');
+            autoSelectMealByTime();
+
+            // Aggiorna interfaccia e mostra feedback
+            updateHistoryUI();
+            showToast('Pasto registrato con successo!', '⚡');
+        }
+
+        // AGGIORNAMENTO UI STORICO
+        function updateHistoryUI() {
+            // Contatori
+            document.getElementById('historyBadgeCount').textContent = entries.length;
+            document.getElementById('statTotalCount').textContent = entries.length;
+            
+            const refluxCount = entries.filter(e => e.reflux !== 'Nessun fastidio').length;
+            document.getElementById('statRefluxCount').textContent = refluxCount;
+
+            const driftCount = entries.filter(e => e.isDrift).length;
+            document.getElementById('statDriftCount').textContent = driftCount;
+
+            // Filtro lista
+            let filtered = entries;
+            if (currentFilter === 'drift') {
+                filtered = entries.filter(e => e.isDrift);
+            } else if (currentFilter === 'reflux') {
+                filtered = entries.filter(e => e.reflux !== 'Nessun fastidio');
+            }
+
+            const historyContainer = document.getElementById('historyList');
+            if (filtered.length === 0) {
+                historyContainer.innerHTML = `
+                    <div class="bg-slate-900/50 border border-slate-800/60 rounded-3xl p-8 text-center text-slate-500">
+                        <div class="text-3xl mb-1.5">📝</div>
+                        <p class="text-xs">Nessuna registrazione trovata.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            historyContainer.innerHTML = filtered.map(e => {
+                const dt = new Date(e.datetime);
+                const dateStr = dt.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                const timeStr = dt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                const mealObj = MEALS.find(m => m.id === e.meal) || { icon: '🍽️' };
+
+                let refluxBadge = '<span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium">🟢 Nessun fastidio</span>';
+                if (e.reflux === 'Fastidio lieve') {
+                    refluxBadge = '<span class="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-medium">🟡 Fastidio lieve</span>';
+                } else if (e.reflux === 'Reflusso / acidità') {
+                    refluxBadge = '<span class="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded-full font-medium">🔴 Reflusso</span>';
+                }
+
+                return `
+                    <div class="bg-slate-900 border border-slate-800/90 rounded-2xl p-3.5 space-y-2 relative shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-base">${mealObj.icon}</span>
+                                <span class="text-xs font-bold text-slate-100">${e.meal}</span>
+                                ${e.isDrift ? '<span class="bg-rose-500/20 text-rose-300 text-[10px] px-1.5 py-0.2 rounded border border-rose-500/30 font-semibold">Drift</span>' : ''}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] text-slate-500 font-mono">${dateStr} ${timeStr}</span>
+                                <button onclick="deleteEntry('${e.id}')" class="text-slate-600 hover:text-rose-400 text-xs p-1">✕</button>
+                            </div>
+                        </div>
+
+                        <div class="text-xs text-slate-200 font-medium leading-relaxed pl-1">
+                            ${escapeHtml(e.food)}
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            ${refluxBadge}
+                            ${e.sleepShort ? '<span class="text-[10px] bg-slate-800 text-amber-300/90 border border-amber-500/20 px-2 py-0.5 rounded-full">🌙 &lt; 3h dal sonno</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ESPORTAZIONE TESTO PER GOOGLE DOCS / NUTRIZIONISTA
+        function copyTextReport() {
+            if (entries.length === 0) {
+                showToast('Nessun dato da copiare!', '⚠️', 'bg-amber-500 text-slate-950');
+                return;
+            }
+
+            let text = "DIARIO ALIMENTARE & REFLUSSO (Riepilogo)\n";
+            text += "========================================\n\n";
+
+            entries.forEach(e => {
+                const dt = new Date(e.datetime);
+                const dateStr = dt.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const timeStr = dt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                
+                text += `• ${dateStr} ${timeStr} - ${e.meal.toUpperCase()}\n`;
+                text += `  Alimenti: ${e.food}\n`;
+                text += `  Digestione: ${e.reflux}${e.sleepShort ? ' | Sonno: < 3h' : ''}${e.isDrift ? ' [DRIFT]' : ''}\n`;
+                text += "----------------------------------------\n";
+            });
+
+            // Standard fallback copy method for iOS/Webviews
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('Copiato! Pronto da incollare su Docs/Note', '📋');
+            } catch (err) {
+                showToast('Errore durante la copia', '❌', 'bg-rose-600 text-white');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // ESPORTAZIONE CSV
+        function exportCSV() {
+            if (entries.length === 0) {
+                showToast('Nessun dato da esportare!', '⚠️', 'bg-amber-500 text-slate-950');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,Data;Ora;Pasto;Cosa Mangiato;Digestione;Sonno Minore 3h;Flag Drift\n";
+            entries.forEach(e => {
+                const dt = new Date(e.datetime);
+                const dateStr = dt.toLocaleDateString('it-IT');
+                const timeStr = dt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                const cleanFood = `"${e.food.replace(/"/g, '""')}"`;
+
+                csvContent += `${dateStr};${timeStr};${e.meal};${cleanFood};${e.reflux};${e.sleepShort ? 'SI' : 'NO'};${e.isDrift ? 'SI' : 'NO'}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Diario_Alimentare_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('CSV Scaricato!', '📊');
+        }
+
+        // FILTRI E SWITCH TAB
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            ['all', 'drift', 'reflux'].forEach(f => {
+                const btn = document.getElementById(`filterBtn-${f}`);
+                if (f === filterType) {
+                    btn.className = 'flex-1 py-1.5 rounded-lg font-medium transition-all bg-slate-800 text-emerald-400 font-semibold shadow-sm';
+                } else {
+                    btn.className = 'flex-1 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-slate-200';
+                }
+            });
+            updateHistoryUI();
+        }
+
+        function switchTab(tab) {
+            const formSec = document.getElementById('sectionForm');
+            const historySec = document.getElementById('sectionHistory');
+            const navForm = document.getElementById('tabNavForm');
+            const navHistory = document.getElementById('tabNavHistory');
+
+            if (tab === 'form') {
+                formSec.classList.remove('hidden');
+                historySec.classList.add('hidden');
+                navForm.className = 'px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-500 text-slate-950 font-semibold shadow-sm';
+                navHistory.className = 'px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all flex items-center gap-1';
+            } else {
+                formSec.classList.add('hidden');
+                historySec.classList.remove('hidden');
+                navHistory.className = 'px-3 py-1.5 rounded-lg font-medium transition-all bg-emerald-500 text-slate-950 font-semibold shadow-sm';
+                navForm.className = 'px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all';
+                updateHistoryUI();
+            }
+        }
+
+        // CANCELLAZIONE SINGOLA / TUTTO (NO ALERT/CONFIRM)
+        function deleteEntry(id) {
+            showConfirmDialog(
+                'Elimina registrazione',
+                'Vuoi davvero cancellare questa voce dal diario?',
+                '🗑️',
+                () => {
+                    entries = entries.filter(e => e.id !== id);
+                    localStorage.setItem('diario_lampo_entries', JSON.stringify(entries));
+                    updateHistoryUI();
+                    showToast('Voce eliminata', '🗑️', 'bg-slate-800 text-slate-200 border border-slate-700');
+                }
+            );
+        }
+
+        function confirmClearAll() {
+            showConfirmDialog(
+                'Svuota intero storico',
+                'Tutti i dati registrati su questo iPhone verranno cancellati in modo permanente.',
+                '⚠️',
+                () => {
+                    entries = [];
+                    localStorage.removeItem('diario_lampo_entries');
+                    updateHistoryUI();
+                    showToast('Storico svuotato', '🧹', 'bg-slate-800 text-slate-200');
+                }
+            );
+        }
+
+        // MODALE DI CONFERMA PERSONALIZZATA
+        function showConfirmDialog(title, message, icon, onConfirm) {
+            const modal = document.getElementById('customConfirmModal');
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmIcon').textContent = icon;
+
+            const btnOk = document.getElementById('confirmBtnOk');
+            const btnCancel = document.getElementById('confirmBtnCancel');
+
+            modal.classList.remove('hidden');
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                btnOk.onclick = null;
+                btnCancel.onclick = null;
+            };
+
+            btnOk.onclick = () => {
+                cleanup();
+                onConfirm();
+            };
+            btnCancel.onclick = cleanup;
+        }
+
+        // TOAST NOTIFICATION
+        function showToast(message, icon = '✅', bgClass = 'bg-emerald-500 text-slate-950') {
+            const toast = document.getElementById('toastNotification');
+            const content = document.getElementById('toastContent');
+            const msgEl = document.getElementById('toastMessage');
+
+            msgEl.textContent = message;
+            content.className = `${bgClass} font-bold px-4 py-2.5 rounded-full shadow-2xl text-xs flex items-center gap-2 border border-white/10`;
+            content.firstElementChild.textContent = icon;
+
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+            }, 2500);
+        }
+
+        // UTILITA' ESCAPE HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // PWA BANNER MANAGEMENT
+        function checkPwaBanner() {
+            const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+            const dismissed = localStorage.getItem('pwa_banner_dismissed');
+            if (!isStandalone && !dismissed) {
+                document.getElementById('pwaBanner').classList.remove('hidden');
+            }
+        }
+
+        function dismissPwaBanner() {
+            document.getElementById('pwaBanner').classList.add('hidden');
+            localStorage.setItem('pwa_banner_dismissed', 'true');
+        }
+    </script>
+</body>
+</html>
