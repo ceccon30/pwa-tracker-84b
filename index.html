@@ -138,6 +138,7 @@
     }
 
     input[type="text"],
+    input[type="search"],
     input[type="number"],
     input[type="password"],
     input[type="time"],
@@ -190,10 +191,36 @@
       background: var(--card);
     }
 
+    .search-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .search-row input[type="search"] {
+      padding: 8px 11px;
+      font-size: 0.88rem;
+      background: var(--card);
+    }
+
+    .clear-search-btn {
+      background: var(--card);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      border-radius: 10px;
+      padding: 0 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
     .preset-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
+      grid-template-columns: 1fr;
+      gap: 7px;
+      max-height: 320px;
+      overflow-y: auto;
     }
 
     .preset-btn {
@@ -201,12 +228,12 @@
       border: 1px solid var(--line);
       color: var(--text);
       border-radius: 10px;
-      padding: 8px 9px;
+      padding: 9px 10px;
       text-align: left;
       cursor: pointer;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
     }
 
     .preset-btn:active {
@@ -217,17 +244,88 @@
     .preset-btn-top {
       display: flex;
       justify-content: space-between;
-      font-size: 0.8rem;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
       font-weight: 700;
       color: #bbf7d0;
     }
 
     .preset-btn-desc {
-      font-size: 0.72rem;
+      font-size: 0.78rem;
       color: var(--muted);
+      white-space: normal;
+      word-break: break-word;
+      line-height: 1.35;
+    }
+
+    .components-box {
+      background: var(--card-2);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 10px;
+      margin-bottom: 11px;
+    }
+
+    .comp-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .comp-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      line-height: 1.25;
+      max-width: 100%;
+    }
+
+    .comp-chip-text {
+      word-break: break-word;
+    }
+
+    .comp-rm {
+      background: none;
+      border: none;
+      color: #fca5a5;
+      font-weight: 800;
+      font-size: 0.9rem;
+      padding: 0 2px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .comp-add-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .comp-add-row select,
+    .comp-add-row input[type="text"] {
+      padding: 8px 10px;
+      font-size: 0.84rem;
+      background: var(--card);
+    }
+
+    .comp-add-btn {
+      background: var(--accent-soft);
+      border: 1px solid rgba(34, 197, 94, 0.45);
+      color: #bbf7d0;
+      border-radius: 10px;
+      padding: 8px 11px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .chip-group {
@@ -500,6 +598,10 @@
             <option value="Giorno 7">Giorno 7</option>
           </select>
         </div>
+        <div class="search-row">
+          <input type="search" id="presetSearchInput" placeholder="🔍 Cerca pasto (es. salmone, uova, yogurt...)" autocomplete="off" />
+          <button type="button" class="clear-search-btn" id="clearPresetSearchBtn">Reset</button>
+        </div>
         <div class="preset-grid" id="presetButtons"></div>
       </div>
 
@@ -533,6 +635,32 @@
         <img id="photoPreview" class="preview-img hidden" alt="Anteprima piatto" />
       </div>
 
+      <!-- Gestione Componenti (Aggiungi / Rimuovi) -->
+      <div class="components-box" id="componentsBox">
+        <label style="margin-bottom:6px;">🧩 Componenti del pasto (tocca × per rimuovere o aggiungi sotto)</label>
+        <div class="comp-chips" id="componentChips"></div>
+
+        <div class="comp-add-row">
+          <select id="quickAddSelect">
+            <option value="">+ Componente rapido...</option>
+            <option value="olio EVO a crudo (10 g)|90|0">Olio EVO a crudo (10 g · +90 kcal)</option>
+            <option value="35 g pane integrale|95|3">Pane integrale (35 g · +95 kcal)</option>
+            <option value="150 g verdure cotte|40|2">Verdure cotte (150 g · +40 kcal)</option>
+            <option value="100 g yogurt bianco naturale|70|5">Yogurt bianco (100 g · +70 kcal)</option>
+            <option value="15 g mandorle|90|3">Mandorle (15 g · +90 kcal)</option>
+            <option value="150 g petto di pollo|170|34">Petto di pollo (150 g · +170 kcal)</option>
+            <option value="160 g merluzzo al vapore|150|29">Merluzzo al vapore (160 g · +150 kcal)</option>
+            <option value="1 mela|80|0">1 mela (+80 kcal)</option>
+          </select>
+          <button type="button" class="comp-add-btn" id="quickAddBtn">+ Aggiungi</button>
+        </div>
+
+        <div class="comp-add-row" style="margin-bottom:0;">
+          <input type="text" id="customCompInput" placeholder="Oppure scrivi componente (es. 60g riso, 1 uovo)" autocomplete="off" />
+          <button type="button" class="comp-add-btn" id="customCompAddBtn">+ Inserisci</button>
+        </div>
+      </div>
+
       <div class="row-2 field">
         <div>
           <label for="mealKcal">Calorie (kcal)</label>
@@ -545,7 +673,7 @@
       </div>
 
       <div class="field">
-        <label>Drift / Trigger (tocca per selezionare)</label>
+        <label>Drift / Trigger (tocca per compilare subito)</label>
         <div class="chip-group" id="driftChips">
           <button type="button" class="chip" data-drift="Pomodoro">🍅 Pomodoro (+25 kcal)</button>
           <button type="button" class="chip" data-drift="Alcol">🍷 Alcol (+120 kcal)</button>
@@ -597,7 +725,6 @@
     const STORAGE_ENTRIES = "diario_lampo_entries_v1";
     const STORAGE_SETTINGS = "diario_lampo_settings_v1";
 
-    // Piano settimanale dal foglio Google (Giorno 1 - Giorno 7)
     const MEAL_PLAN = {
       "Giorno 1": [
         { slot: "Colazione", desc: "2 uova (sode, in camicia o strapazzate in antiaderente con poco olio), 30–40 g pane integrale, zucchine o spinaci cotti, tisana tiepida (no menta)", kcal: 330, protein: 18 },
@@ -658,6 +785,8 @@
       "Dolce": 220
     };
 
+    const AUTO_DRIFT_LABELS = new Set(Object.keys(DRIFT_KCAL));
+
     const LOCAL_FOOD_DB = [
       { keys: ["riso", "basmati", "integrale"], kcalPer100: 130, protPer100: 2.7 },
       { keys: ["pasta", "spaghetti", "penne", "fusilli", "farro", "orzo", "couscous"], kcalPer100: 145, protPer100: 5.0 },
@@ -683,7 +812,9 @@
       selectedDrifts: new Set(),
       reflux: "Assente",
       photoBase64: null,
-      photoMime: null
+      photoMime: null,
+      autoFilledDesc: false,
+      components: []
     };
 
     function todayISO() {
@@ -752,10 +883,158 @@
       el.style.color = isError ? "#fca5a5" : "#7dd3fc";
     }
 
+    function estimateSingleComponent(label) {
+      const clean = String(label || "").trim().toLowerCase();
+      if (!clean) return { kcal: 0, protein: 0 };
+
+      const matchFood = LOCAL_FOOD_DB.find(food =>
+        food.keys.some(k => new RegExp(`\\b${k}\\b`, "i").test(clean))
+      );
+      if (!matchFood) return { kcal: 30, protein: 0 };
+
+      const gramMatch = clean.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gr|grammi|ml)\b/i);
+      const spoonMatch = clean.match(/(\d+(?:[.,]\d+)?)\s*(?:cucchiai|cucchiaio|cucchiaini|cucchiaino)\b/i);
+      const glassMatch = clean.match(/(\d+(?:[.,]\d+)?)\s*(?:calice|calici|bicchiere|bicchieri|tazza|tazze)\b/i);
+
+      let grams = matchFood.unitGrams || 100;
+      if (gramMatch) {
+        grams = parseFloat(gramMatch[1].replace(",", "."));
+      } else if (spoonMatch) {
+        grams = parseFloat(spoonMatch[1].replace(",", ".")) * 10;
+      } else if (glassMatch) {
+        grams = parseFloat(glassMatch[1].replace(",", ".")) * 150;
+      }
+
+      return {
+        kcal: Math.round((matchFood.kcalPer100 * grams) / 100),
+        protein: Math.round((matchFood.protPer100 * grams) / 100)
+      };
+    }
+
+    function splitPresetIntoComponents(desc, totalKcal, totalProtein) {
+      const parts = String(desc || "")
+        .split(",")
+        .map(p => p.trim())
+        .filter(Boolean);
+
+      if (!parts.length) return [];
+
+      const rawEstimates = parts.map(p => estimateSingleComponent(p));
+      const sumRawKcal = rawEstimates.reduce((a, b) => a + b.kcal, 0);
+      const sumRawProt = rawEstimates.reduce((a, b) => a + b.protein, 0);
+
+      const kcalFactor = sumRawKcal > 0 && totalKcal > 0 ? totalKcal / sumRawKcal : 1;
+      const protFactor = sumRawProt > 0 && totalProtein > 0 ? totalProtein / sumRawProt : 1;
+
+      return parts.map((label, idx) => ({
+        id: `comp_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+        label,
+        kcal: Math.max(0, Math.round(rawEstimates[idx].kcal * kcalFactor)),
+        protein: Math.max(0, Math.round(rawEstimates[idx].protein * protFactor))
+      }));
+    }
+
+    function syncDescAndTotalsFromComponents() {
+      const descInput = document.getElementById("mealDesc");
+      const kcalInput = document.getElementById("mealKcal");
+      const protInput = document.getElementById("mealProtein");
+
+      descInput.value = state.components.map(c => c.label).join(", ");
+      state.autoFilledDesc = false;
+
+      const compKcal = state.components.reduce((a, b) => a + (Number(b.kcal) || 0), 0);
+      const compProt = state.components.reduce((a, b) => a + (Number(b.protein) || 0), 0);
+
+      let driftExtra = 0;
+      state.selectedDrifts.forEach(d => {
+        driftExtra += DRIFT_KCAL[d] || 0;
+      });
+
+      kcalInput.value = compKcal + driftExtra;
+      protInput.value = compProt;
+      renderComponentChips();
+    }
+
+    function renderComponentChips() {
+      const container = document.getElementById("componentChips");
+      if (!state.components.length) {
+        container.innerHTML = `<div class="sub">Nessun componente attivo. Seleziona un pasto o aggiungi un ingrediente sotto.</div>`;
+        return;
+      }
+
+      container.innerHTML = state.components
+        .map(c => `
+          <span class="comp-chip">
+            <span class="comp-chip-text">${escapeHtml(c.label)}</span>
+            <button type="button" class="comp-rm" title="Rimuovi componente" onclick="removeComponent('${c.id}')">×</button>
+          </span>
+        `)
+        .join("");
+    }
+
+    function removeComponent(id) {
+      const removed = state.components.find(c => c.id === id);
+      state.components = state.components.filter(c => c.id !== id);
+      syncDescAndTotalsFromComponents();
+      if (removed) {
+        setStatus(`Rimosso: ${removed.label}. Calorie aggiornate.`);
+      }
+    }
+
+    function addComponent(label, kcalVal, protVal) {
+      const clean = String(label || "").trim();
+      if (!clean) return;
+
+      const est = typeof kcalVal === "number"
+        ? { kcal: kcalVal, protein: Number(protVal) || 0 }
+        : estimateSingleComponent(clean);
+
+      state.components.push({
+        id: `comp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        label: clean,
+        kcal: est.kcal,
+        protein: est.protein
+      });
+      syncDescAndTotalsFromComponents();
+      setStatus(`Aggiunto: ${clean} (${est.kcal} kcal).`);
+    }
+
     function renderPresetButtons() {
       const day = document.getElementById("planDaySelect").value;
-      const items = MEAL_PLAN[day] || [];
+      const query = (document.getElementById("presetSearchInput").value || "").trim().toLowerCase();
       const container = document.getElementById("presetButtons");
+
+      if (query) {
+        const matches = [];
+        Object.keys(MEAL_PLAN).forEach(d => {
+          (MEAL_PLAN[d] || []).forEach((item, idx) => {
+            const hay = `${d} ${item.slot} ${item.desc}`.toLowerCase();
+            if (hay.includes(query)) {
+              matches.push({ day: d, idx, item });
+            }
+          });
+        });
+
+        if (!matches.length) {
+          container.innerHTML = `<div class="sub">Nessun pasto trovato per "${escapeHtml(query)}".</div>`;
+          return;
+        }
+
+        container.innerHTML = matches
+          .map(m => `
+            <button type="button" class="preset-btn" onclick="applyPreset('${m.day}', ${m.idx})">
+              <div class="preset-btn-top">
+                <span>${escapeHtml(m.day)} · ${escapeHtml(m.item.slot)}</span>
+                <span>${m.item.kcal} kcal</span>
+              </div>
+              <div class="preset-btn-desc">${escapeHtml(m.item.desc)}</div>
+            </button>
+          `)
+          .join("");
+        return;
+      }
+
+      const items = MEAL_PLAN[day] || [];
       container.innerHTML = items
         .map((item, idx) => `
           <button type="button" class="preset-btn" onclick="applyPreset('${day}', ${idx})">
@@ -774,16 +1053,52 @@
       if (!item) return;
 
       document.getElementById("mealType").value = item.slot;
-      document.getElementById("mealDesc").value = item.desc;
+      state.components = splitPresetIntoComponents(item.desc, item.kcal, item.protein);
+      syncDescAndTotalsFromComponents();
+      setStatus(`Caricato: ${day} · ${item.slot}. Puoi aggiungere o rimuovere componenti prima di salvare.`);
+    }
 
-      let totalKcal = item.kcal;
-      state.selectedDrifts.forEach(d => {
-        totalKcal += DRIFT_KCAL[d] || 0;
-      });
+    function applyDriftToggle(driftName) {
+      const delta = DRIFT_KCAL[driftName] || 0;
+      const kcalInput = document.getElementById("mealKcal");
+      const currentRaw = parseInt(kcalInput.value, 10);
+      const currentKcal = Number.isNaN(currentRaw) ? 0 : currentRaw;
 
-      document.getElementById("mealKcal").value = totalKcal;
-      document.getElementById("mealProtein").value = item.protein;
-      setStatus(`Caricato: ${day} · ${item.slot} (${totalKcal} kcal). Controlla e salva.`);
+      const isNowSelected = state.selectedDrifts.has(driftName);
+      if (isNowSelected) {
+        state.selectedDrifts.delete(driftName);
+        if (delta > 0) {
+          kcalInput.value = Math.max(0, currentKcal - delta);
+        }
+      } else {
+        state.selectedDrifts.add(driftName);
+        if (delta > 0) {
+          kcalInput.value = currentKcal + delta;
+        } else if (kcalInput.value === "") {
+          kcalInput.value = 0;
+        }
+      }
+
+      syncDriftChips();
+
+      const descInput = document.getElementById("mealDesc");
+      const currentDesc = descInput.value.trim();
+      const selectedList = Array.from(state.selectedDrifts);
+
+      if (selectedList.length > 0 && (!currentDesc || state.autoFilledDesc)) {
+        descInput.value = selectedList.join(", ");
+        state.autoFilledDesc = true;
+      } else if (selectedList.length === 0 && state.autoFilledDesc) {
+        descInput.value = "";
+        state.autoFilledDesc = false;
+      }
+
+      const finalKcal = parseInt(kcalInput.value, 10) || 0;
+      if (selectedList.length > 0) {
+        setStatus(`Compilati ${finalKcal} kcal (${selectedList.join(", ")}). Tocca "Salva nel Diario".`);
+      } else {
+        setStatus(`Aggiornate calorie a ${finalKcal} kcal.`);
+      }
     }
 
     function initForm() {
@@ -795,6 +1110,7 @@
       document.getElementById("planDaySelect").value = state.settings.selectedDay || "Giorno 1";
       syncCustomModelVisibility();
       renderPresetButtons();
+      renderComponentChips();
       document.getElementById("todayLabel").textContent =
         `Oggi ${todayISO()} · Target ${state.settings.targetKcal} kcal`;
     }
@@ -823,7 +1139,7 @@
 
       const listEl = document.getElementById("entriesList");
       if (!todayEntries.length) {
-        listEl.innerHTML = `<div class="sub">Nessuna registrazione per oggi. Scegli un pasto predefinito o scatta una foto.</div>`;
+        listEl.innerHTML = `<div class="sub">Nessuna registrazione per oggi. Tocca un drift o un pasto per iniziare.</div>`;
         return;
       }
 
@@ -1014,6 +1330,13 @@
 
         if (parsed.description) {
           document.getElementById("mealDesc").value = parsed.description;
+          state.autoFilledDesc = false;
+          state.components = splitPresetIntoComponents(
+            parsed.description,
+            typeof parsed.kcal === "number" ? parsed.kcal : 0,
+            typeof parsed.protein === "number" ? parsed.protein : 0
+          );
+          renderComponentChips();
         }
         if (typeof parsed.kcal === "number") {
           document.getElementById("mealKcal").value = Math.round(parsed.kcal);
@@ -1065,15 +1388,20 @@
       document.getElementById("mealKcal").value = "";
       document.getElementById("mealProtein").value = "";
       document.getElementById("mealTime").value = nowTime();
+      document.getElementById("quickAddSelect").value = "";
+      document.getElementById("customCompInput").value = "";
       state.selectedDrifts.clear();
       state.reflux = "Assente";
       state.photoBase64 = null;
       state.photoMime = null;
+      state.autoFilledDesc = false;
+      state.components = [];
       const img = document.getElementById("photoPreview");
       img.src = "";
       img.classList.add("hidden");
       syncDriftChips();
       syncRefluxChips();
+      renderComponentChips();
     }
 
     function buildTextReport() {
@@ -1107,7 +1435,43 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    // Event listeners
+    document.getElementById("mealDesc").addEventListener("input", e => {
+      state.autoFilledDesc = false;
+      const parts = e.target.value.split(",").map(p => p.trim()).filter(Boolean);
+      state.components = parts.map((label, idx) => {
+        const est = estimateSingleComponent(label);
+        return {
+          id: `comp_edit_${idx}_${label.slice(0, 8)}`,
+          label,
+          kcal: est.kcal,
+          protein: est.protein
+        };
+      });
+      renderComponentChips();
+    });
+
+    document.getElementById("quickAddBtn").addEventListener("click", () => {
+      const raw = document.getElementById("quickAddSelect").value;
+      if (!raw) return;
+      const [label, kStr, pStr] = raw.split("|");
+      addComponent(label, parseInt(kStr, 10) || 0, parseInt(pStr, 10) || 0);
+      document.getElementById("quickAddSelect").value = "";
+    });
+
+    document.getElementById("customCompAddBtn").addEventListener("click", () => {
+      const inp = document.getElementById("customCompInput");
+      if (!inp.value.trim()) return;
+      addComponent(inp.value.trim());
+      inp.value = "";
+    });
+
+    document.getElementById("customCompInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("customCompAddBtn").click();
+      }
+    });
+
     document.getElementById("toggleSettingsBtn").addEventListener("click", () => {
       document.getElementById("settingsPanel").classList.toggle("hidden");
     });
@@ -1117,6 +1481,13 @@
     document.getElementById("planDaySelect").addEventListener("change", () => {
       state.settings.selectedDay = document.getElementById("planDaySelect").value;
       saveSettings();
+      renderPresetButtons();
+    });
+
+    document.getElementById("presetSearchInput").addEventListener("input", renderPresetButtons);
+
+    document.getElementById("clearPresetSearchBtn").addEventListener("click", () => {
+      document.getElementById("presetSearchInput").value = "";
       renderPresetButtons();
     });
 
@@ -1134,9 +1505,9 @@
     document.querySelectorAll("#driftChips .chip").forEach(chip => {
       chip.addEventListener("click", () => {
         const d = chip.dataset.drift;
-        if (state.selectedDrifts.has(d)) state.selectedDrifts.delete(d);
-        else state.selectedDrifts.add(d);
-        syncDriftChips();
+        if (AUTO_DRIFT_LABELS.has(d)) {
+          applyDriftToggle(d);
+        }
       });
     });
 
@@ -1181,7 +1552,7 @@
       let kcal = parseInt(document.getElementById("mealKcal").value, 10);
       const protein = parseInt(document.getElementById("mealProtein").value, 10) || 0;
 
-      if (!desc && !kcal) {
+      if (!desc && !kcal && state.selectedDrifts.size === 0) {
         setStatus("Inserisci almeno una descrizione del pasto o le calorie.", true);
         return;
       }
@@ -1194,7 +1565,7 @@
         date: todayISO(),
         time: document.getElementById("mealTime").value || nowTime(),
         mealType: document.getElementById("mealType").value,
-        description: desc || "Pasto registrato",
+        description: desc || Array.from(state.selectedDrifts).join(", ") || "Pasto registrato",
         kcal,
         protein,
         drifts: Array.from(state.selectedDrifts),
